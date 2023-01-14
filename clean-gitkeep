@@ -24,7 +24,7 @@ set -e
 
 only_check=
 dir=.
-target_file=.gitkeep
+keep_file_name=.gitkeep
 out=/dev/stdout
 exit_status=0
 
@@ -32,22 +32,23 @@ print_usage() {
   echo "Usage: $(basename $0): [-c] [-d DIR_NAME] [-f TARGET_FILE] [-h] [-q]"
 }
 
-has_other_files() {
+has_only_keep_file() {
   dir="$1"
-  (( $(ls -A "$dir" | wc -l) > 1 ))
+  [[ -z $(ls -A "$dir" | grep -v "$keep_file_name") ]]
 }
 
 clean() {
-  target_path=$1
-  if ! has_other_files $(dirname "$target_path"); then
+  keep_file_path=$1
+  if has_only_keep_file $(dirname "$keep_file_path"); then
+    # do nothing
     return
   fi
 
   if [[ "$only_check" ]]; then
-    echo "$target_path" > "$out"
+    echo "$keep_file_path" > "$out"
     exit_status=1
   else
-    git rm "$target_path" > "$out"
+    git rm "$keep_file_path" > "$out"
   fi
 }
 
@@ -57,7 +58,7 @@ while getopts 'cd:f:hq' OPTION; do
       ;;
     d) dir="$OPTARG"
       ;;
-    f) target_file="$OPTARG"
+    f) keep_file_name="$OPTARG"
       ;;
     h) print_usage
       exit 0
@@ -71,7 +72,7 @@ while getopts 'cd:f:hq' OPTION; do
 done
 shift $((OPTIND - 1))
 
-for path in $(find "$dir" -name "$target_file" -type f); do
+for path in $(find "$dir" -name "$keep_file_name" -type f); do
   clean "$path"
 done
 
